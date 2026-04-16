@@ -1,0 +1,33 @@
+{
+    "enabled": true,
+    "max_risk_score": 80,
+    "checks": {
+        "lp_locked": {
+            "enabled": true,
+            "penalty": 35
+        },
+        "mint_disabled": {
+            "enabled": true,
+            "penalty": 30
+        },
+        "freeze_disabled": {
+            "enabled": true,
+            "penalty": 20
+        },
+        "max_creator_percentage": {
+            "enabled": true,
+            "threshold": 10,
+            "penalty": 25
+        },
+        "min_holders": {
+            "enabled": true,
+            "threshold": 10,
+            "penalty": 15
+        },
+        "max_top_10_holders_percentage": {
+            "enabled": true,
+            "threshold": 50,
+            "penalty": 15
+        }
+    }
+}

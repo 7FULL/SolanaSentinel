@@ -1,0 +1,110 @@
+/*
+ * Table Components
+ */
+
+.table-container {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table thead {
+    background: var(--bg-tertiary);
+}
+
+.data-table th {
+    padding: var(--spacing-md);
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-table td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.data-table tbody tr {
+    transition: background 0.2s;
+}
+
+.data-table tbody tr:hover {
+    background: var(--bg-tertiary);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Table Badges */
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge.active {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--accent-success);
+}
+
+.badge.inactive {
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--text-muted);
+}
+
+.badge.internal {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-primary);
+}
+
+.badge.external {
+    background: rgba(168, 85, 247, 0.1);
+    color: #a855f7;
+}
+
+.badge.passed {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--accent-success);
+}
+
+.badge.failed {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--accent-danger);
+}
+
+.badge.blocked {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--accent-danger);
+}
+
+/* Address Display */
+.address {
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.address-short {
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.address-short:hover {
+    color: var(--accent-primary);
+}

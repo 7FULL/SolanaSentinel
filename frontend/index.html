@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolanaSentinel - Solana Trading Automation</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components/cards.css">
+    <link rel="stylesheet" href="css/components/tables.css">
+    <link rel="stylesheet" href="css/components/forms.css">
+    <link rel="stylesheet" href="css/components/modals.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <h1>SolanaSentinel</h1>
+                <span class="version">v1.0.0</span>
+            </div>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Status</span>
+                    <span class="stat-value" id="api-status">
+                        <span class="status-dot"></span>
+                        <span>Connecting...</span>
+                    </span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Live</span>
+                    <span class="stat-value">
+                        <span class="status-dot error" id="ws-status-dot"></span>
+                        <span id="ws-status-text">Connecting…</span>
+                    </span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Network</span>
+                    <span class="stat-value" id="network-badge">—</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Active Wallet</span>
+                    <span class="stat-value" id="active-wallet">None</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="sidebar">
+        <ul class="nav-menu">
+            <li class="nav-item active" data-section="dashboard">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Dashboard</span>
+            </li>
+            <li class="nav-item" data-section="wallets">
+                <span class="nav-icon">💼</span>
+                <span class="nav-label">Wallets</span>
+            </li>
+            <li class="nav-item" data-section="copy-trading">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">Copy Trading</span>
+            </li>
+            <li class="nav-item" data-section="sniper">
+                <span class="nav-icon">🎯</span>
+                <span class="nav-label">Sniper Bot</span>
+            </li>
+            <li class="nav-item" data-section="anti-scam">
+                <span class="nav-icon">🛡️</span>
+                <span class="nav-label">Anti-Scam</span>
+            </li>
+            <li class="nav-item" data-section="logs">
+                <span class="nav-icon">📝</span>
+                <span class="nav-label">Logs</span>
+            </li>
+            <li class="nav-item" data-section="notifications">
+                <span class="nav-icon">🔔</span>
+                <span class="nav-label">Notifications</span>
+            </li>
+            <li class="nav-item" data-section="settings">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Settings</span>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Section -->
+        <section id="dashboard-section" class="content-section active">
+            <div class="section-header">
+                <h2>Dashboard</h2>
+                <p>Overview of your trading automation system</p>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Wallets</h3>
+                    <p class="stat-number" id="total-wallets">-</p>
+                    <span class="stat-change positive">Active</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Copy Trading Rules</h3>
+                    <p class="stat-number" id="copy-rules-count">-</p>
+                    <span class="stat-change" id="active-rules-label">-</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Tokens Detected</h3>
+                    <p class="stat-number" id="tokens-detected">-</p>
+                    <span class="stat-change neutral">Today</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Sniper Status</h3>
+                    <p class="stat-number" id="sniper-status">-</p>
+                    <span class="stat-change" id="sniper-mode">-</span>
+                </div>
+            </div>
+
+            <!-- Module Status -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Module Status</h3>
+                </div>
+                <div class="card-body">
+                    <div class="module-status-grid" id="module-status">
+                        <div class="module-item">
+                            <span class="module-name">Wallet Manager</span>
+                            <span class="module-status-badge loading">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WebSocket Control Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>WebSocket Monitor</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-success btn-sm" id="ws-start-btn" onclick="startWebSocketMonitor()">Start Monitor</button>
+                        <button class="btn btn-danger btn-sm" id="ws-stop-btn" onclick="stopWebSocketMonitor()" style="display:none;">Stop Monitor</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 1rem;">
+                        <div class="stat-card">
+                            <h4>Connection</h4>
+                            <p class="stat-number" id="ws-connection-status">Disconnected</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4>Active Subscriptions</h4>
+                            <p class="stat-number" id="ws-subscriptions-count">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4>Running</h4>
+                            <p class="stat-number" id="ws-running-status">No</p>
+                        </div>
+                    </div>
+
+                    <!-- Active subscriptions -->
+                    <div style="margin-top: 1rem; margin-bottom: 0.75rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                            <span style="font-size:0.85rem; color:var(--text-secondary);">Active Subscriptions</span>
+                            <span id="ws-sub-detail-count" style="font-size:0.75rem; color:var(--text-muted);">0</span>
+                        </div>
+                        <div id="ws-sub-list" style="
+                            background: var(--bg-tertiary, #0d1117);
+                            border: 1px solid var(--border-color, #30363d);
+                            border-radius: 6px;
+                            padding: 0.4rem 0.6rem;
+                            font-size: 0.75rem;
+                            color: var(--text-secondary);
+                        ">
+                            <span style="color:var(--text-muted);">—</span>
+                        </div>
+                    </div>
+
+                    <!-- Live event feed -->
+                    <div style="margin-top: 0.5rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                            <span style="font-size:0.85rem; color:var(--text-secondary);">Live Events</span>
+                            <span id="ws-event-count" style="font-size:0.75rem; color:var(--text-muted);">0 events</span>
+                        </div>
+                        <div id="ws-event-feed" style="
+                            background: var(--bg-tertiary, #0d1117);
+                            border: 1px solid var(--border-color, #30363d);
+                            border-radius: 6px;
+                            padding: 0.5rem;
+                            max-height: 220px;
+                            overflow-y: auto;
+                            font-family: monospace;
+                            font-size: 0.72rem;
+                            color: var(--text-secondary);
+                        ">
+                            <span style="color:var(--text-muted);">No events yet — start the WebSocket Monitor</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Recent Activity</h3>
+                    <button class="btn btn-sm" onclick="loadRecentLogs()">Refresh</button>
+                </div>
+                <div class="card-body">
+                    <div class="activity-list" id="recent-activity">
+                        <p class="text-muted">Loading recent activity...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Wallets Section -->
+        <section id="wallets-section" class="content-section">
+            <div class="section-header">
+                <h2>Wallet Management</h2>
+                <div class="section-actions">
+                    <button class="btn btn-primary" onclick="showCreateWalletModal()">Create Wallet</button>
+                    <button class="btn btn-secondary" onclick="showImportWalletModal()">Import Wallet</button>
+                </div>
+            </div>
+
+            <!-- Module Assignments -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Module Assignments</h3>
+                    <button class="btn btn-sm" onclick="loadWalletAssignments()">Refresh</button>
+                </div>
+                <div class="card-body" id="wallet-assignments-body">
+                    <p class="text-muted">Loading assignments...</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Your Wallets</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table class="data-table" id="wallets-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Address</th>
+                                    <th>Type</th>
+                                    <th>Balance (SOL)</th>
+                                    <th>Balance (USD)</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">Loading wallets...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Copy Trading Section -->
+        <section id="copy-trading-section" class="content-section">
+            <div class="section-header">
+                <h2>Copy Trading</h2>
+                <div class="section-actions">
+                    <button class="btn btn-success" id="ct-start-btn" onclick="startCopyTradingHandler()">Start</button>
+                    <button class="btn btn-danger"  id="ct-stop-btn"  onclick="stopCopyTradingHandler()" style="display:none">Stop</button>
+                    <button class="btn btn-primary" onclick="showAddCTWalletModal()">Add Wallet</button>
+                </div>
+            </div>
+
+            <!-- Status bar -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Status</h3>
+                    <p class="stat-number" id="ct-status-text">Stopped</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Monitored</h3>
+                    <p class="stat-number" id="ct-monitored-count">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Copied Today</h3>
+                    <p class="stat-number" id="ct-copied-today">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Sim P&amp;L</h3>
+                    <p class="stat-number" id="ct-sim-pnl">0.0000 SOL</p>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tab-bar">
+                <button class="tab-btn active" id="ct-tab-btn-wallets"     onclick="switchCTTab('wallets',     this)">Monitored Wallets</button>
+                <button class="tab-btn"         id="ct-tab-btn-activity"   onclick="switchCTTab('activity',   this)">Activity</button>
+                <button class="tab-btn"         id="ct-tab-btn-simulation" onclick="switchCTTab('simulation', this)">Simulation P&amp;L</button>
+            </div>
+
+            <!-- Tab: Monitored Wallets -->
+            <div id="ct-tab-wallets" class="ct-tab-content">
+                <div class="card">
+                    <div class="card-body">
+                        <div id="ct-wallets-list">
+                            <p class="text-muted">Loading wallets...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Activity -->
+            <div id="ct-tab-activity" class="ct-tab-content" style="display:none">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Detected Trades</h3>
+                        <button class="btn btn-sm" onclick="loadCTActivity()">Refresh</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="ct-activity-list">
+                            <p class="text-muted">No activity yet. Start copy trading to see detected trades here.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Simulation P&L -->
+            <div id="ct-tab-simulation" class="ct-tab-content" style="display:none">
+                <!-- Sim stats -->
+                <div class="stats-grid" id="ct-sim-stats-grid">
+                    <div class="stat-card"><h3>Total Trades</h3><p class="stat-number" id="ct-stat-total">0</p></div>
+                    <div class="stat-card"><h3>Open</h3>        <p class="stat-number" id="ct-stat-open">0</p></div>
+                    <div class="stat-card"><h3>Win Rate</h3>    <p class="stat-number" id="ct-stat-winrate">0%</p></div>
+                    <div class="stat-card"><h3>Realized P&amp;L</h3><p class="stat-number" id="ct-stat-realized">0 SOL</p></div>
+                    <div class="stat-card"><h3>Unrealized P&amp;L</h3><p class="stat-number" id="ct-stat-unrealized">0 SOL</p></div>
+                    <div class="stat-card"><h3>Total P&amp;L</h3><p class="stat-number" id="ct-stat-total-pnl">0 SOL</p></div>
+                    <div class="stat-card"><h3>Best Trade</h3>  <p class="stat-number" id="ct-stat-best">0%</p></div>
+                    <div class="stat-card"><h3>Worst Trade</h3> <p class="stat-number" id="ct-stat-worst">0%</p></div>
+                </div>
+
+                <!-- Sim controls -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Positions</h3>
+                        <div style="display:flex;gap:8px">
+                            <select id="ct-sim-filter" class="form-control form-control-sm" style="width:auto" onchange="filterCTSimPositions(this.value)">
+                                <option value="all">All</option>
+                                <option value="open" selected>Open</option>
+                                <option value="closed">Closed</option>
+                            </select>
+                            <button class="btn btn-sm" id="ct-sim-refresh-btn" onclick="refreshCTSimNow(this)">Refresh</button>
+                            <button class="btn btn-sm btn-danger" onclick="resetCTSimulation()">Reset</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table" id="ct-sim-positions-table">
+                                <thead>
+                                    <tr>
+                                        <th>Source Wallet</th>
+                                        <th>Token</th>
+                                        <th>Entry Price</th>
+                                        <th>Current Price</th>
+                                        <th>P&amp;L %</th>
+                                        <th>P&amp;L SOL</th>
+                                        <th>Amount</th>
+                                        <th>Mode</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ct-sim-positions-body">
+                                    <tr><td colspan="10" class="text-center text-muted">No simulation positions yet</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sniper Section -->
+        <section id="sniper-section" class="content-section">
+            <div class="section-header">
+                <h2>Sniper Bot</h2>
+                <div class="section-actions">
+                    <button class="btn btn-success" id="sniper-start-btn" onclick="startSniper()">Start Sniper</button>
+                    <button class="btn btn-danger" id="sniper-stop-btn" onclick="stopSniper()" style="display:none;">Stop Sniper</button>
+                    <button class="btn btn-secondary" onclick="showSniperConfigModal()">Configure</button>
+                </div>
+            </div>
+
+            <!-- Sniper Status -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Status</h3>
+                    <p class="stat-number" id="sniper-status-detail">Stopped</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Mode</h3>
+                    <p class="stat-number" id="sniper-mode-detail">-</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Detected Today</h3>
+                    <p class="stat-number" id="sniper-detected-today">-</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Watching</h3>
+                    <p class="stat-number" id="sniper-watching-count">-</p>
+                </div>
+            </div>
+
+            <!-- Tab navigation -->
+            <div class="sniper-tabs">
+                <button class="sniper-tab active" id="tab-live" onclick="switchSniperTab('live')">Live Detection</button>
+                <button class="sniper-tab" id="tab-tracker" onclick="switchSniperTab('tracker')">Token Tracker</button>
+                <button class="sniper-tab" id="tab-simulation" onclick="switchSniperTab('simulation')">Simulation P&amp;L</button>
+            </div>
+
+            <!-- Live Detection panel -->
+            <div id="sniper-panel-live" class="sniper-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Detected Tokens <small class="text-muted" style="font-size:.75rem;font-weight:400;" id="live-panel-subtitle">— watching</small></h3>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-sm" onclick="toggleLiveView(this)" title="Show all detected tokens">View All</button>
+                            <button class="btn btn-sm" onclick="loadDetectedTokens()">Refresh</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table" id="detected-tokens-table">
+                                <thead>
+                                    <tr>
+                                        <th>Token</th>
+                                        <th>Platform</th>
+                                        <th>Liquidity</th>
+                                        <th>Market Cap</th>
+                                        <th>Risk Score</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted">Loading detected tokens...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Token Tracker panel -->
+            <div id="sniper-panel-tracker" class="sniper-panel" style="display:none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Token Tracker</h3>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                            <button class="btn btn-sm tracker-filter active" onclick="setTrackerFilter('all',this)">All</button>
+                            <button class="btn btn-sm tracker-filter" onclick="setTrackerFilter('watching',this)">Watching</button>
+                            <button class="btn btn-sm tracker-filter" onclick="setTrackerFilter('passed_filters',this)">Passed</button>
+                            <button class="btn btn-sm tracker-filter" onclick="setTrackerFilter('expired',this)">Expired</button>
+                            <button class="btn btn-sm tracker-filter" onclick="setTrackerFilter('rejected_by_ai',this)">Rejected</button>
+                            <button class="btn btn-sm" onclick="loadTokenTracker()">Refresh</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table" id="token-tracker-table">
+                                <thead>
+                                    <tr>
+                                        <th>Token</th>
+                                        <th>Platform</th>
+                                        <th>Status</th>
+                                        <th>Entry Price</th>
+                                        <th>Current Price</th>
+                                        <th>Change</th>
+                                        <th>Market Cap</th>
+                                        <th title="ML pump probability score (0-100)">ML</th>
+                                        <th>Fail Reason</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="10" class="text-center text-muted">No tokens tracked yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Price detail panel (shown on row click) -->
+                <div id="token-detail-panel" class="card" style="display:none;margin-top:16px;">
+                    <div class="card-header">
+                        <h3 id="token-detail-title">Token Detail</h3>
+                        <button class="btn btn-sm" onclick="closeTokenDetail()">Close</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="token-detail-info" style="margin-bottom:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;"></div>
+                        <h4 style="margin-bottom:8px;">Price History</h4>
+                        <canvas id="token-price-chart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Simulation P&L panel -->
+            <div id="sniper-panel-simulation" class="sniper-panel" style="display:none;">
+
+                <!-- Global stats row -->
+                <div class="stats-grid" id="sim-stats-grid">
+                    <div class="stat-card"><h3>Total Trades</h3><p class="stat-number" id="sim-total-trades">—</p></div>
+                    <div class="stat-card"><h3>Open</h3><p class="stat-number" id="sim-open-count">—</p></div>
+                    <div class="stat-card"><h3>Win Rate</h3><p class="stat-number" id="sim-win-rate">—</p></div>
+                    <div class="stat-card"><h3>Realized P&amp;L</h3><p class="stat-number" id="sim-realized-pnl">—</p></div>
+                    <div class="stat-card"><h3>Unrealized P&amp;L</h3><p class="stat-number" id="sim-unrealized-pnl">—</p></div>
+                    <div class="stat-card"><h3>Total P&amp;L</h3><p class="stat-number" id="sim-total-pnl">—</p></div>
+                    <div class="stat-card"><h3>ROI</h3><p class="stat-number" id="sim-roi">—</p></div>
+                    <div class="stat-card"><h3>Best Trade</h3><p class="stat-number" id="sim-best-trade">—</p></div>
+                    <div class="stat-card"><h3>Worst Trade</h3><p class="stat-number" id="sim-worst-trade">—</p></div>
+                </div>
+
+                <!-- Positions table -->
+                <div class="card" style="margin-top:16px;">
+                    <div class="card-header">
+                        <h3>Simulation Positions</h3>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                            <button class="btn btn-sm sim-filter" onclick="setSimFilter('all',this)">All</button>
+                            <button class="btn btn-sm sim-filter active" onclick="setSimFilter('open',this)">Open</button>
+                            <button class="btn btn-sm sim-filter" onclick="setSimFilter('closed_tp',this)">TP Hit</button>
+                            <button class="btn btn-sm sim-filter" onclick="setSimFilter('closed_sl',this)">SL Hit</button>
+                            <button class="btn btn-sm" id="sim-refresh-btn" onclick="refreshSimulationNow(this)">Refresh</button>
+                            <button class="btn btn-sm btn-danger" onclick="resetSimulation()">Reset Simulation</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table" id="sim-positions-table">
+                                <thead>
+                                    <tr>
+                                        <th>Token</th>
+                                        <th>Status</th>
+                                        <th>Entry Price</th>
+                                        <th>Current / Exit</th>
+                                        <th>Change %</th>
+                                        <th>P&amp;L (SOL)</th>
+                                        <th>Fees (SOL)</th>
+                                        <th>Virtual SOL</th>
+                                        <th>Entry MC</th>
+                                        <th title="ML pump probability score at entry (0-100)">ML</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td colspan="11" class="text-center text-muted">No simulation positions yet</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Anti-Scam Section -->
+        <section id="anti-scam-section" class="content-section">
+            <div class="section-header">
+                <h2>Anti-Scam Analyzer</h2>
+            </div>
+
+            <!-- ML Pump Predictor -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>ML Pump Predictor</h3>
+                    <button class="btn btn-sm" onclick="loadMLConfig()">Refresh</button>
+                </div>
+                <div class="card-body" id="ml-config-body">
+                    <p class="text-muted">Loading...</p>
+                </div>
+            </div>
+
+            <!-- Token Analysis -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Analyze Token</h3>
+                </div>
+                <div class="card-body">
+                    <form class="inline-form" onsubmit="analyzeToken(event)">
+                        <input type="text" id="token-address-input" placeholder="Enter token address" required>
+                        <button type="submit" class="btn btn-primary">Analyze</button>
+                    </form>
+
+                    <div id="analysis-result" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
+            <!-- Anti-Scam Configuration -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Configuration</h3>
+                    <button class="btn btn-sm" onclick="loadAntiScamConfig()">Refresh</button>
+                </div>
+                <div class="card-body" id="anti-scam-config-body">
+                    <p class="text-muted">Loading configuration...</p>
+                </div>
+            </div>
+
+            <!-- Blacklist -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Blacklist</h3>
+                    <button class="btn btn-sm" onclick="loadBlacklist()">Refresh</button>
+                </div>
+                <div class="card-body">
+                    <div id="blacklist-content">
+                        <p class="text-muted">Loading blacklist...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Logs Section -->
+        <section id="logs-section" class="content-section">
+            <div class="section-header">
+                <h2>System Logs</h2>
+                <div class="section-actions">
+                    <select id="log-level-filter" onchange="loadLogs()">
+                        <option value="all">All Levels</option>
+                        <option value="DEBUG">Debug</option>
+                        <option value="INFO">Info</option>
+                        <option value="WARNING">Warning</option>
+                        <option value="ERROR">Error</option>
+                        <option value="CRITICAL">Critical</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="loadLogs()">Refresh</button>
+                    <button class="btn btn-danger" onclick="clearLogs()">Clear Logs</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="logs-container" id="logs-container">
+                        <p class="text-muted">Loading logs...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Notifications Section -->
+        <section id="notifications-section" class="content-section">
+            <div class="section-header">
+                <h2>Notifications</h2>
+                <p>Configure Telegram and Discord alerts for trading events</p>
+            </div>
+
+            <!-- Status Card -->
+            <div class="stats-grid" style="grid-template-columns: repeat(3,1fr);">
+                <div class="stat-card">
+                    <h3>Enabled</h3>
+                    <p class="stat-number" id="notif-enabled-status">-</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Sent</h3>
+                    <p class="stat-number" id="notif-sent-count">-</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Failed</h3>
+                    <p class="stat-number" id="notif-failed-count">-</p>
+                </div>
+            </div>
+
+            <!-- Telegram Config -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Telegram</h3>
+                    <span class="badge" id="tg-status-badge">Not configured</span>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted" style="margin-bottom:16px;">
+                        Create a bot via <strong>@BotFather</strong>, get the token, then send a message to the bot
+                        and use <code>getUpdates</code> to find your Chat ID.
+                    </p>
+                    <form onsubmit="saveTelegramConfig(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Bot Token</label>
+                                <input type="password" id="tg-token" placeholder="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ" autocomplete="off">
+                                <div class="form-helper">From @BotFather — keep this secret</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Chat ID</label>
+                                <input type="text" id="tg-chat-id" placeholder="-100123456789">
+                                <div class="form-helper">Your user ID or group/channel ID (negative for groups)</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer" style="padding:0; margin-top:12px;">
+                            <button type="submit" class="btn btn-primary">Save Telegram Config</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Discord Config -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Discord</h3>
+                    <span class="badge" id="discord-status-badge">Not configured</span>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted" style="margin-bottom:16px;">
+                        In Discord: <strong>Server Settings → Integrations → Webhooks → New Webhook</strong>.
+                        Copy the webhook URL.
+                    </p>
+                    <form onsubmit="saveDiscordConfig(event)">
+                        <div class="form-group">
+                            <label class="form-label">Webhook URL</label>
+                            <input type="text" id="discord-webhook" placeholder="https://discord.com/api/webhooks/...">
+                        </div>
+                        <div class="modal-footer" style="padding:0; margin-top:12px;">
+                            <button type="submit" class="btn btn-primary">Save Discord Config</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Master Switch + Test -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Controls</h3>
+                </div>
+                <div class="card-body" style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <button class="btn btn-success" onclick="enableNotifications()">Enable All</button>
+                    <button class="btn btn-secondary" onclick="disableNotifications()">Disable All</button>
+                    <button class="btn btn-primary" onclick="sendTestNotification()">Send Test Notification</button>
+                    <button class="btn btn-sm" onclick="loadNotificationStatus()">Refresh Status</button>
+                </div>
+            </div>
+        </section>
+        <!-- Settings Section -->
+        <section id="settings-section" class="content-section">
+            <div class="section-header">
+                <h2>Settings</h2>
+                <p>Configure RPC endpoint and network connection</p>
+            </div>
+
+            <!-- RPC Configuration -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>RPC Endpoint</h3>
+                    <button class="btn btn-sm" onclick="loadRpcSettings()">Refresh</button>
+                </div>
+                <div class="card-body" id="rpc-settings-body">
+                    <p class="text-muted">Loading...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modals will be added dynamically via JavaScript -->
+    <div id="modal-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/components/wallets.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+    <script src="js/components/copy-trading.js"></script>
+    <script src="js/components/sniper.js"></script>
+    <script src="js/components/anti-scam.js"></script>
+    <script src="js/components/logs.js"></script>
+    <script src="js/components/notifications.js"></script>
+    <script src="js/components/settings.js"></script>
+    <script src="js/ws.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

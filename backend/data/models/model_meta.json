@@ -1,0 +1,32 @@
+{
+  "model_name": "RF_tuned",
+  "model_file": "pump_predictor_rf_tuned.joblib",
+  "model_type": "gradient_boosting",
+  "feature_cols": [
+    "f_log_mc",
+    "f_log_liq",
+    "f_log_price",
+    "f_liq_mc_ratio",
+    "f_on_curve",
+    "f_log_bc_sol",
+    "f_log_bc_mc_sol",
+    "f_risk_score",
+    "f_is_safe",
+    "f_is_pumpfun",
+    "f_hour_sin",
+    "f_hour_cos"
+  ],
+  "needs_scaling": false,
+  "threshold": 0.50,
+  "label": "pump_20pct_1h",
+  "label_threshold": 1.2,
+  "roc_auc": 0.8239,
+  "pr_auc": 0.1233,
+  "base_rate": 0.035804,
+  "train_samples": 11170,
+  "test_samples": 2793,
+  "tuned": true,
+  "tuner": "optuna",
+  "n_trials": 60,
+  "note": "Ensemble Ens GB(70%)+TN(30%) scored PR-AUC=0.130 but TabNet was not persisted. RF_tuned is the active model. Rerun 04_advanced_models.ipynb to regenerate ensemble."
+}

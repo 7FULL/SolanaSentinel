@@ -1,0 +1,41 @@
+{
+    "enabled": false,
+    "mode": "simulation",
+    "filters": {
+        "min_liquidity": 100,
+        "max_liquidity": null,
+        "min_market_cap": 0,
+        "max_market_cap": 500000,
+        "min_initial_volume": 0,
+        "max_time_since_creation_minutes": 5,
+        "platforms": [
+            "pump.fun",
+            "raydium"
+        ],
+        "require_lp_locked": false
+    },
+    "execution": {
+        "auto_buy_amount": 0.1,
+        "max_slippage": 10,
+        "priority_fee": 0.001,
+        "use_jito": false
+    },
+    "anti_scam": {
+        "enabled": true,
+        "max_risk_score": 80
+    },
+    "ml": {
+        "enabled": false,
+        "min_pump_score": 0
+    },
+    "limits": {
+        "max_buys_per_hour": 10,
+        "max_total_investment": 5.0
+    },
+    "simulation": {
+        "tp_percent": 20,
+        "sl_percent": 10,
+        "fee_entry_percent": 1.25,
+        "fee_exit_percent": 1.25
+    }
+}
