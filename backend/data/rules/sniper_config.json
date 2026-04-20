@@ -11,8 +11,7 @@
         "platforms": [
             "pump.fun",
             "raydium"
-        ],
-        "require_lp_locked": false
+        ]
     },
     "execution": {
         "auto_buy_amount": 0.1,

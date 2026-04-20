@@ -233,6 +233,28 @@ class TokenDetector:
             # which is also called at app startup independently of the sniper)
             self.start_outcome_tracker()
 
+            # Raydium health check: warn after 10 minutes if no WS events arrived.
+            # Public RPC nodes routinely drop logsSubscribe events for high-volume
+            # programs (Raydium processes thousands of txs/minute). The pump.fun
+            # polling fallback already catches migrations, so this is purely advisory.
+            if 'raydium' in enabled:
+                import threading as _t
+                def _raydium_health_check():
+                    import time as _time
+                    _time.sleep(600)   # wait 10 minutes
+                    total = self._raydium_events_received + self._raydium_cpmm_events_received
+                    if total == 0:
+                        print("\n" + "="*70)
+                        print("[TOKEN-DETECTOR] ⚠️  RAYDIUM WEBSOCKET HEALTH WARNING")
+                        print("[TOKEN-DETECTOR]    No Raydium WS events in 10 minutes.")
+                        print("[TOKEN-DETECTOR]    Cause: public RPC nodes rate-limit high-volume programs.")
+                        print("[TOKEN-DETECTOR]    Impact: direct Raydium launches (CPMM) may be missed.")
+                        print("[TOKEN-DETECTOR]    Pump.fun→Raydium migrations ARE caught via pump.fun poll.")
+                        print("[TOKEN-DETECTOR]    Fix: use a paid RPC (Helius / QuickNode / Alchemy).")
+                        print("="*70 + "\n")
+                _t.Thread(target=_raydium_health_check, daemon=True,
+                          name="raydium-health").start()
+
         except Exception as e:
             print(f"\n[TOKEN-DETECTOR] ❌ Critical error starting token detector: {e}")
             import traceback
@@ -473,6 +495,15 @@ class TokenDetector:
         "Instruction: createPool",   # alternative instruction name in some CPMM builds
     )
 
+    # Pump.fun emits one of these when a token's bonding curve completes
+    # (~$69 k raised) and the token is migrated to a Raydium AMM V4 pool.
+    # We detect migrations from the pump.fun logsSubscribe because the
+    # Raydium subscription is often rate-limited on public RPC nodes.
+    _PUMPFUN_MIGRATE_INSTRUCTIONS = (
+        "Instruction: Migrate",   # standard pump.fun migration (capital M, Anchor)
+        "Instruction: migrate",   # lowercase variant in some builds
+    )
+
     def _handle_raydium_cpmm_log(self, event_data: Dict):
         """
         Handle Raydium CPMM program log events — only act on new pool creation.
@@ -571,7 +602,7 @@ class TokenDetector:
                 'token_symbol': 'RAY-NEW',
                 'initial_liquidity': 0.0,
                 'market_cap': 0.0,
-                'platform': 'raydium_cpmm',
+                'platform': 'raydium',
             }
 
             if not signature:
@@ -714,6 +745,19 @@ class TokenDetector:
                 for ci in self._PUMPFUN_CREATE_INSTRUCTIONS
             )
             if not is_create:
+                # Check for pump.fun → Raydium migration instead
+                is_migrate = any(
+                    log.endswith(mi)
+                    for log in logs
+                    for mi in self._PUMPFUN_MIGRATE_INSTRUCTIONS
+                )
+                if is_migrate and signature and signature not in self._seen_signatures:
+                    self.logger.info(f"Pump.fun → Raydium migration detected (WS): {signature}")
+                    print(f"[TOKEN-DETECTOR] 🔀 Pump.fun→Raydium migration (WS): {signature[:20] if signature else '?'}…")
+                    token_info = self._parse_pump_migration(value, signature)
+                    if token_info:
+                        self._mark_seen(signature)
+                        self._emit_token_detected(token_info)
                 return
 
             # Deduplicate: only _seen_signatures contains confirmed Creates.
@@ -853,16 +897,28 @@ class TokenDetector:
             except Exception:
                 pass
 
-            # Not a Create — skip without touching _seen_signatures so the
-            # WebSocket can still deliver it freely (it will also discard it).
-            # Use the same broad check as the WS handler so both paths stay
-            # consistent even if pump.fun changes their instruction name.
+            # Not a Create — check for migration, otherwise skip.
             is_create = any(
                 log.endswith(ci)
                 for log in logs
                 for ci in self._PUMPFUN_CREATE_INSTRUCTIONS
             )
             if not is_create:
+                is_migrate = any(
+                    log.endswith(mi)
+                    for log in logs
+                    for mi in self._PUMPFUN_MIGRATE_INSTRUCTIONS
+                )
+                if not is_migrate:
+                    continue
+                # Migration — emit as a Raydium token
+                new_count += 1
+                print(f"[TOKEN-DETECTOR] 🔀 Pump.fun→Raydium migration (poll): {sig[:20]}…")
+                self.logger.info(f"Pump.fun migration caught by poller: {sig}")
+                token_info = self._parse_pump_migration({'logs': logs, 'signature': sig}, sig)
+                if token_info:
+                    self._mark_seen(sig)
+                    self._emit_token_detected(token_info)
                 continue
 
             # This is a Create not yet seen — parse and emit
@@ -877,6 +933,113 @@ class TokenDetector:
 
         if new_count:
             print(f"[TOKEN-DETECTOR] 🔄 Poller caught {new_count} missed token(s)")
+
+    def _parse_pump_migration(self, tx_data: Dict, signature: str) -> Optional[Dict]:
+        """
+        Parse a pump.fun → Raydium migration transaction.
+
+        When a pump.fun bonding curve completes (~$69 k raised), the pump.fun
+        program migrates the token to a Raydium AMM V4 pool via a CPI.
+        The migration transaction invokes pump.fun (outer) and Raydium AMM (inner).
+
+        Pump.fun `migrate` account order (0-indexed in the transaction):
+          0  global state
+          1  fee recipient
+          2  mint              ← the migrating token's mint address
+          3  bondingCurve
+          4  associatedBondingCurve (token account)
+          5  Raydium pool state
+          ...
+
+        We identify the mint by scanning indices 2-6 for the first account
+        that is neither a known system/quote program nor a known DEX program.
+        """
+        try:
+            sig_short = (signature[:20] + '...') if signature else '—'
+            base = {
+                'source':   'raydium',
+                'platform': 'raydium',
+                'signature': signature,
+                'sig_short': sig_short,
+                'solscan_url': f'https://solscan.io/tx/{signature}' if signature else None,
+                'detected_at': datetime.utcnow().isoformat() + 'Z',
+                'token_mint':   None,
+                'token_name':   sig_short,
+                'token_symbol': 'MIGRATED',
+                'initial_liquidity': 0.0,
+                'market_cap':  0.0,
+                'migration': True,
+            }
+
+            if not signature:
+                return base
+
+            accounts = self.rpc.get_transaction_accounts(signature)
+            if not accounts or len(accounts) < 3:
+                return base
+
+            _SKIP = {
+                "11111111111111111111111111111111",
+                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+                PUMP_FUN_PROGRAM_ID,
+                RAYDIUM_AMM_PROGRAM_ID,
+                RAYDIUM_CPMM_PROGRAM_ID,
+                "SysvarRent111111111111111111111111111111111",
+                "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bRS",
+                "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
+                # Quote mints (SOL, USDC, USDT) are not the new token
+                "So11111111111111111111111111111111111111112",
+                "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+            }
+
+            mint_address = None
+            # Try the expected mint position first (index 2), then broaden
+            for idx in (2, 3, 4, 1, 5, 6):
+                if idx < len(accounts):
+                    pubkey = accounts[idx]['pubkey']
+                    if pubkey and len(pubkey) >= 32 and pubkey not in _SKIP:
+                        mint_address = pubkey
+                        break
+
+            if not mint_address:
+                return base
+
+            base['token_mint']     = mint_address
+            base['dexscreener_url'] = f'https://dexscreener.com/solana/{mint_address}'
+
+            # On-chain metadata
+            meta = self.rpc.get_token_metadata(mint_address)
+            if meta:
+                base['token_name']   = meta['name']
+                base['token_symbol'] = meta['symbol']
+                print(
+                    f"[TOKEN-DETECTOR] 📋 Migration metadata: "
+                    f"{meta['symbol']} / {meta['name']}"
+                )
+
+            # DexScreener — pool may already exist on Raydium
+            dex_data = self.dexscreener.get_token_data(mint_address, retries=3, retry_delay=5.0)
+            if dex_data:
+                base.update({
+                    'token_name':        dex_data['name']   if not meta else base['token_name'],
+                    'token_symbol':      dex_data['symbol'] if not meta else base['token_symbol'],
+                    'initial_liquidity': dex_data['liquidity_usd'],
+                    'market_cap':        dex_data['market_cap'],
+                    'volume_1h':         dex_data['volume_1h'],
+                    'price_usd':         dex_data['price_usd'],
+                    'dexscreener_url':   dex_data['dexscreener_url'],
+                })
+
+            return base
+
+        except Exception as e:
+            self.logger.error(
+                f"Error parsing pump.fun migration "
+                f"({signature[:20] if signature else '?'}): {e}"
+            )
+            return None
 
     def _parse_raydium_pool(self, tx_data: Dict, signature: str) -> Optional[Dict]:
         """
@@ -900,7 +1063,8 @@ class TokenDetector:
         try:
             sig_short = (signature[:20] + '...') if signature else '—'
             base = {
-                'source': 'raydium',
+                'source':   'raydium',
+                'platform': 'raydium',
                 'signature': signature,
                 'sig_short': sig_short,
                 'solscan_url': f'https://solscan.io/tx/{signature}' if signature else None,

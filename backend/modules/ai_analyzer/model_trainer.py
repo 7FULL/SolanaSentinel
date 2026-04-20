@@ -179,14 +179,15 @@ class ModelTrainer:
             df = pd.read_sql_query(
                 """
                 SELECT id, source, detected_at,
-                       initial_liquidity, market_cap, price_usd, volume_1h,
+                       initial_liquidity, market_cap, volume_1h,
+                       COALESCE(NULLIF(price_usd, 0), latest_price_usd) AS price_usd,
                        bonding_curve_complete, bonding_curve_real_sol,
                        bonding_curve_mc_sol, risk_score, risk_level,
                        outcome_price_1h
                 FROM detected_tokens
                 WHERE outcome_complete = 1
-                  AND price_usd        IS NOT NULL
-                  AND price_usd        >  0
+                  AND COALESCE(NULLIF(price_usd, 0), latest_price_usd) IS NOT NULL
+                  AND COALESCE(NULLIF(price_usd, 0), latest_price_usd) >  0
                   AND outcome_price_1h IS NOT NULL
                 """,
                 conn,

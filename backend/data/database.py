@@ -359,7 +359,16 @@ class DatabaseManager:
                         latest_market_cap = COALESCE(?, latest_market_cap),
                         latest_price_usd  = COALESCE(?, latest_price_usd),
                         latest_volume_1h  = COALESCE(?, latest_volume_1h),
-                        latest_updated_at = ?
+                        latest_updated_at = ?,
+                        -- Backfill price_usd when it was saved as 0 at detection
+                        -- time (DexScreener not yet indexed, bonding curve unavailable).
+                        -- Uses the first real price we receive — closest proxy to the
+                        -- detection-time price with no significant lookahead bias.
+                        price_usd = CASE
+                            WHEN (price_usd IS NULL OR price_usd = 0) AND ? IS NOT NULL
+                            THEN ?
+                            ELSE price_usd
+                        END
                     WHERE token_mint = ?
                 """, (
                     data.get('liquidity_usd') or data.get('initial_liquidity'),
@@ -367,6 +376,8 @@ class DatabaseManager:
                     data.get('price_usd'),
                     data.get('volume_1h'),
                     datetime.utcnow().isoformat(),
+                    data.get('price_usd'),  # CASE condition check
+                    data.get('price_usd'),  # CASE value
                     mint,
                 ))
                 self._conn.commit()

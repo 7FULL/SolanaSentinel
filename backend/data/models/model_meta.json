@@ -17,16 +17,12 @@
     "f_hour_cos"
   ],
   "needs_scaling": false,
-  "threshold": 0.50,
+  "threshold": 0.5588045050464774,
   "label": "pump_20pct_1h",
   "label_threshold": 1.2,
-  "roc_auc": 0.8239,
-  "pr_auc": 0.1233,
-  "base_rate": 0.035804,
-  "train_samples": 11170,
-  "test_samples": 2793,
-  "tuned": true,
-  "tuner": "optuna",
-  "n_trials": 60,
-  "note": "Ensemble Ens GB(70%)+TN(30%) scored PR-AUC=0.130 but TabNet was not persisted. RF_tuned is the active model. Rerun 04_advanced_models.ipynb to regenerate ensemble."
+  "roc_auc": 0.7928255488671149,
+  "pr_auc": 0.10753081528723867,
+  "base_rate": 0.030913348946135833,
+  "train_samples": 17080,
+  "test_samples": 4270
 }
