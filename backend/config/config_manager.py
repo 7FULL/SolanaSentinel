@@ -93,13 +93,17 @@ class ConfigManager:
             }
         }
 
+        print(f"[CONFIG] default network (from env): {default_config['solana']['network']}")
+
         # Try to load from file
         if os.path.exists(self.config_file):
             try:
                 with open(self.config_file, 'r') as f:
                     file_config = json.load(f)
+                    print(f"[CONFIG] settings.json network: {file_config.get('solana', {}).get('network', '(no solana key)')}")
                     # Merge with defaults (file config overrides defaults)
                     self._deep_merge(default_config, file_config)
+                    print(f"[CONFIG] after merge network: {default_config['solana']['network']}")
             except Exception as e:
                 print(f"Warning: Could not load config file: {e}")
 
