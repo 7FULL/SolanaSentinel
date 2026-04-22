@@ -23,7 +23,7 @@ class ConfigManager:
             config_file: Optional path to JSON configuration file
         """
         self.base_dir = Path(__file__).parent.parent
-        load_dotenv(self.base_dir.parent / '.env')
+        load_dotenv(self.base_dir.parent / '.env', override=True)
         self.data_dir = self.base_dir / 'data'
         self.config_file = config_file or self.base_dir / 'config' / 'settings.json'
 
