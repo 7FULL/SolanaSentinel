@@ -7,7 +7,7 @@ import os
 import json
 from pathlib import Path
 from typing import Any, Dict, Optional
-
+from dotenv import load_dotenv
 
 class ConfigManager:
     """
@@ -22,6 +22,8 @@ class ConfigManager:
         Args:
             config_file: Optional path to JSON configuration file
         """
+        load_dotenv()
+
         self.base_dir = Path(__file__).parent.parent
         self.data_dir = self.base_dir / 'data'
         self.config_file = config_file or self.base_dir / 'config' / 'settings.json'
