@@ -22,7 +22,7 @@ class ConfigManager:
         Args:
             config_file: Optional path to JSON configuration file
         """
-        load_dotenv()
+        load_dotenv("../../.env")  # Load environment variables from .env file
 
         self.base_dir = Path(__file__).parent.parent
         self.data_dir = self.base_dir / 'data'
