@@ -345,20 +345,21 @@ class SolanaRPCClient:
         """
         import requests as _requests
 
+        payload = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "getTransaction",
+            "params": [
+                signature,
+                {
+                    "encoding": "jsonParsed",
+                    "maxSupportedTransactionVersion": 0,
+                    "commitment": "confirmed",
+                },
+            ],
+        }
+
         try:
-            payload = {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "getTransaction",
-                "params": [
-                    signature,
-                    {
-                        "encoding": "jsonParsed",
-                        "maxSupportedTransactionVersion": 0,
-                        "commitment": "confirmed",
-                    },
-                ],
-            }
             resp = _requests.post(self.rpc_url, json=payload, timeout=8)
             resp.raise_for_status()
             result = resp.json().get("result")

@@ -68,6 +68,11 @@ class TokenDetector:
         self._poll_thread: Optional[threading.Thread] = None
         self._poll_interval: int = 10      # seconds between polls
         self._poll_batch:    int = 20      # signatures to fetch per poll
+        # Timestamp of the last WS event from pump.fun subscription.
+        # Polling is skipped while the WS is alive to avoid rate-limit exhaustion.
+        self._last_ws_pumpfun_event: float = 0.0
+        # How long the WS must be silent before polling re-activates (seconds)
+        self._ws_silence_threshold: int = 45
 
         # Diagnostics — track what instruction strings arrive from pump.fun
         # so we can detect if the program changed its instruction names.
@@ -710,6 +715,9 @@ class TokenDetector:
             logs = value.get('logs', [])
             signature = value.get('signature')
 
+            # Mark WS as alive — polling is suppressed while events keep coming
+            self._last_ws_pumpfun_event = time.time()
+
             # ── Diagnostics ─────────────────────────────────────────────
             # Count every event and track all "Instruction: X" strings so we
             # can detect whether pump.fun changed their instruction names.
@@ -823,6 +831,13 @@ class TokenDetector:
         time.sleep(self._poll_interval)
 
         while self.is_running:
+            # Skip polling while the WebSocket is delivering events.
+            # The WS is the fast path; polling only burns rate-limit budget
+            # when both are active on a public RPC node.
+            ws_silence = time.time() - self._last_ws_pumpfun_event
+            if ws_silence < self._ws_silence_threshold:
+                time.sleep(self._poll_interval)
+                continue
             try:
                 self._poll_pumpfun_once()
             except Exception as e:
@@ -1176,9 +1191,12 @@ class TokenDetector:
             if not signature:
                 return base
 
-            # Fetch full transaction JSON to get account keys
+            # Fetch full transaction JSON to get account keys (retried internally)
             accounts = self.rpc.get_transaction_accounts(signature)
             if not accounts:
+                # Last-resort: emit with just the signature so the token appears
+                # in the UI immediately; the refresh loop will fill in the rest.
+                base['solscan_url'] = f'https://solscan.io/tx/{signature}'
                 return base
 
             # The Pump.fun create instruction uses a fixed account order.
@@ -1321,7 +1339,45 @@ class TokenDetector:
 
             mint = token.get('token_mint')
             if not mint:
-                continue
+                # If we have the signature, try once more to resolve the mint
+                sig = token.get('signature')
+                if not sig:
+                    continue
+                accounts = self.rpc.get_transaction_accounts(sig)
+                if not accounts:
+                    continue
+                _SKIP = {
+                    "11111111111111111111111111111111",
+                    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                    PUMP_FUN_PROGRAM_ID,
+                    "SysvarRent111111111111111111111111111111111",
+                    "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bRS",
+                    "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
+                }
+                creator = accounts[0]['pubkey'] if accounts else None
+                for acc in accounts[1:]:
+                    pk = acc.get('pubkey', '')
+                    if acc.get('signer') and pk and pk not in _SKIP:
+                        mint = pk
+                        break
+                if not mint:
+                    for idx in (1, 2, 3):
+                        if idx < len(accounts):
+                            pk = accounts[idx]['pubkey']
+                            if pk and len(pk) >= 32 and pk not in _SKIP:
+                                mint = pk
+                                break
+                if not mint:
+                    continue
+                token['token_mint']      = mint
+                token['creator']         = creator
+                token['dexscreener_url'] = f'https://dexscreener.com/solana/{mint}'
+                # Try to get on-chain metadata now that we have the mint
+                meta = self.rpc.get_token_metadata(mint)
+                if meta:
+                    token['token_name']   = meta['name']
+                    token['token_symbol'] = meta['symbol']
+                self.logger.info(f"[REFRESH] Recovered mint for PUMP-NEW: {mint[:12]}…")
 
             # Avoid hammering RPC — small pause between lookups
             time.sleep(0.5)
