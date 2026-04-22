@@ -23,12 +23,18 @@ class ConfigManager:
             config_file: Optional path to JSON configuration file
         """
         self.base_dir = Path(__file__).parent.parent
-        load_dotenv(self.base_dir.parent / '.env', override=True)
+        _env_path = self.base_dir.parent / '.env'
+        _loaded = load_dotenv(_env_path, override=True)
+        print(f"[CONFIG] .env path : {_env_path}")
+        print(f"[CONFIG] .env found: {_env_path.exists()}  loaded={_loaded}")
         self.data_dir = self.base_dir / 'data'
         self.config_file = config_file or self.base_dir / 'config' / 'settings.json'
+        print(f"[CONFIG] settings  : {self.config_file}  exists={Path(self.config_file).exists()}")
+        print(f"[CONFIG] SOLANA_NETWORK env = {os.getenv('SOLANA_NETWORK', '(not set)')}")
 
         # Load configuration
         self.config = self._load_config()
+        print(f"[CONFIG] Final network: {self.config.get('solana', {}).get('network', '?')}")
 
     def _load_config(self) -> Dict[str, Any]:
         """
