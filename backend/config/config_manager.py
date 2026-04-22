@@ -23,18 +23,12 @@ class ConfigManager:
             config_file: Optional path to JSON configuration file
         """
         self.base_dir = Path(__file__).parent.parent
-        _env_path = self.base_dir.parent / '.env'
-        _loaded = load_dotenv(_env_path, override=True)
-        print(f"[CONFIG] .env path : {_env_path}")
-        print(f"[CONFIG] .env found: {_env_path.exists()}  loaded={_loaded}")
+        load_dotenv(self.base_dir.parent / '.env', override=True)
         self.data_dir = self.base_dir / 'data'
         self.config_file = config_file or self.base_dir / 'config' / 'settings.json'
-        print(f"[CONFIG] settings  : {self.config_file}  exists={Path(self.config_file).exists()}")
-        print(f"[CONFIG] SOLANA_NETWORK env = {os.getenv('SOLANA_NETWORK', '(not set)')}")
 
         # Load configuration
         self.config = self._load_config()
-        print(f"[CONFIG] Final network: {self.config.get('solana', {}).get('network', '?')}")
 
     def _load_config(self) -> Dict[str, Any]:
         """
@@ -93,19 +87,28 @@ class ConfigManager:
             }
         }
 
-        print(f"[CONFIG] default network (from env): {default_config['solana']['network']}")
-
         # Try to load from file
         if os.path.exists(self.config_file):
             try:
                 with open(self.config_file, 'r') as f:
                     file_config = json.load(f)
-                    print(f"[CONFIG] settings.json network: {file_config.get('solana', {}).get('network', '(no solana key)')}")
-                    # Merge with defaults (file config overrides defaults)
+                    # Merge settings.json on top of defaults
                     self._deep_merge(default_config, file_config)
-                    print(f"[CONFIG] after merge network: {default_config['solana']['network']}")
             except Exception as e:
                 print(f"Warning: Could not load config file: {e}")
+
+        # .env always wins over settings.json for Solana connection settings
+        # so each machine can configure its own RPC without editing the shared JSON
+        _env_overrides = {
+            k: v for k, v in {
+                'rpc_url':    os.getenv('SOLANA_RPC_URL'),
+                'ws_url':     os.getenv('SOLANA_WS_URL'),
+                'network':    os.getenv('SOLANA_NETWORK'),
+                'commitment': os.getenv('SOLANA_COMMITMENT'),
+            }.items() if v is not None
+        }
+        if _env_overrides:
+            default_config['solana'].update(_env_overrides)
 
         # Save default config if file doesn't exist
         if not os.path.exists(self.config_file):
