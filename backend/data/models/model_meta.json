@@ -1,7 +1,7 @@
 {
-  "model_name": "RF_tuned",
-  "model_file": "pump_predictor_rf_tuned.joblib",
-  "model_type": "gradient_boosting",
+  "model_name": "RandomForest_v2",
+  "model_file": "pump_predictor_randomforest_v2.joblib",
+  "model_type": "randomforest",
   "feature_cols": [
     "f_log_mc",
     "f_log_liq",
@@ -14,15 +14,27 @@
     "f_is_safe",
     "f_is_pumpfun",
     "f_hour_sin",
-    "f_hour_cos"
+    "f_hour_cos",
+    "f_bc_progress",
+    "f_dow_sin",
+    "f_dow_cos"
   ],
   "needs_scaling": false,
-  "threshold": 0.5588045050464774,
-  "label": "pump_20pct_1h",
-  "label_threshold": 1.2,
-  "roc_auc": 0.7928255488671149,
-  "pr_auc": 0.10753081528723867,
-  "base_rate": 0.030913348946135833,
-  "train_samples": 17080,
-  "test_samples": 4270
+  "threshold": 0.6732522266424265,
+  "label": "pump_tp_20pct",
+  "label_threshold": 20.0,
+  "roc_auc": 0.8014862484673839,
+  "pr_auc": 0.15186222879749364,
+  "base_rate": 0.04969204927211646,
+  "train_samples": 28576,
+  "test_samples": 7144,
+  "train_period": {
+    "from": "2026-04-10",
+    "to": "2026-04-23"
+  },
+  "test_period": {
+    "from": "2026-04-23",
+    "to": "2026-04-25"
+  },
+  "notes": "v2: label=outcome_max_gain_pct>=20 (TP-aligned), +f_bc_progress +f_dow_sin/cos, 35,720 samples vs 22k anterior"
 }

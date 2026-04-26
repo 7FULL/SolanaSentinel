@@ -489,6 +489,8 @@ class AIAnalyzer:
         )
 
         detected_at = token_info.get("detected_at") or token_info.get("timestamp")
+        hour = 12.0
+        dow  = 3.0   # Wednesday as neutral default
         if detected_at:
             try:
                 if isinstance(detected_at, str):
@@ -497,10 +499,12 @@ class AIAnalyzer:
                 else:
                     dt = detected_at
                 hour = dt.hour + dt.minute / 60.0
+                dow  = float(dt.weekday())
             except Exception:
-                hour = 12.0
-        else:
-            hour = 12.0
+                pass
+
+        # f_bc_progress: how far along the pump.fun bonding curve (0=new, 1=graduating)
+        bc_progress = min(max(bc_sol / 85.0, 0.0), 1.0)
 
         # Feature name → computed value (supports all past and future features)
         lookup: Dict = {
@@ -517,6 +521,9 @@ class AIAnalyzer:
             "f_is_pumpfun":    is_pumpfun,
             "f_hour_sin":      math.sin(2 * math.pi * hour / 24),
             "f_hour_cos":      math.cos(2 * math.pi * hour / 24),
+            "f_bc_progress":   bc_progress,
+            "f_dow_sin":       math.sin(2 * math.pi * dow / 7),
+            "f_dow_cos":       math.cos(2 * math.pi * dow / 7),
         }
 
         # Assemble in the exact order the model was trained with
