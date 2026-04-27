@@ -477,10 +477,19 @@ class AIAnalyzer:
             return None
 
         vol       = float(token_info.get("volume_1h") or 0)
-        bc_complete = token_info.get("bonding_curve_complete")
-        on_curve  = float(bc_complete == 0) if bc_complete is not None else 0.0
-        bc_sol    = float(token_info.get("bonding_curve_real_sol") or 0)
-        bc_mc_sol = float(token_info.get("bonding_curve_mc_sol")   or 0)
+        # Bonding curve fields may be nested (live token_info) or flat (DB row).
+        # Try flat keys first; fall back to the nested 'bonding_curve' dict.
+        _bc_dict   = token_info.get("bonding_curve") or {}
+        bc_complete = (
+            token_info.get("bonding_curve_complete")
+            if token_info.get("bonding_curve_complete") is not None
+            else (0 if _bc_dict.get("complete") is False
+                  else 1 if _bc_dict.get("complete") is True
+                  else None)
+        )
+        on_curve  = float(bc_complete == 0) if bc_complete is not None else 1.0
+        bc_sol    = float(token_info.get("bonding_curve_real_sol") or _bc_dict.get("real_sol") or 0)
+        bc_mc_sol = float(token_info.get("bonding_curve_mc_sol")   or _bc_dict.get("market_cap_sol") or 0)
         risk_score = float(token_info.get("risk_score") or 50)
         risk_level = token_info.get("risk_level", "")
         is_safe    = float(risk_level in ("safe", "low"))
