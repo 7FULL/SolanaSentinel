@@ -613,8 +613,15 @@ class AIAnalyzer:
                     prob = gb_prob
 
             else:
-                # gradient_boosting (sklearn) — the common case
-                prob = float(self._ml_model.predict_proba(X_raw)[0, 1])
+                # sklearn-compatible estimator (RF, XGB, LGB, etc.)
+                # Pass as DataFrame when feature names are available to silence LGB warning
+                feature_cols = self._ml_meta.get("feature_cols")
+                if feature_cols:
+                    import pandas as _pd  # noqa: PLC0415
+                    X_in = _pd.DataFrame(X_raw, columns=feature_cols)
+                else:
+                    X_in = X_raw
+                prob = float(self._ml_model.predict_proba(X_in)[0, 1])
 
             return {
                 "pump_probability": round(prob, 4),
